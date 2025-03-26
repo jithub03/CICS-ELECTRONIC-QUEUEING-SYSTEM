@@ -18,6 +18,9 @@ class Admin extends Component
 {
     use Toast;
 
+    public bool $authenticated = false;
+    public string $passcode_input = '';
+
     public string $search = '';
     public bool $drawer = false;
     public bool $modal = false;
@@ -38,7 +41,7 @@ class Admin extends Component
     public $inquiry_details = '';
     public $notify_sms = false;
     public $notify_email = false;
-    public $window_number = null; // Initialize window_number
+    public $window_number = null;
 
     public $reason_details = '';
 
@@ -50,13 +53,29 @@ class Admin extends Component
         'inquiry_details' => 'string|max:1000',
         'notify_sms' => 'boolean',
         'notify_email' => 'boolean',
-        'window_number' => 'nullable|integer', // Add validation rule for window_number
+        'window_number' => 'nullable|integer',
     ];
+
+    public function mount()
+    {
+        $this->authenticated = false;
+        $this->refreshUsers();
+    }
+
+    public function verifyPasscode()
+    {
+        if ($this->passcode_input === env('ADMIN_PASSCODE')) {
+            $this->authenticated = true;
+            $this->passcode_input = '';
+        } else {
+            $this->error('Incorrect passcode.', position: 'toast-bottom');
+        }
+    }
 
     public function openEditStatusModalToProcess($userId)
     {
         $this->userIdToUpdate = $userId;
-        $this->window_number = null; // Ensure window_number is reset
+        $this->window_number = null;
         $this->modalEditStatusToProcess = true;
     }
 
@@ -72,17 +91,11 @@ class Admin extends Component
         $this->modalReason = true;
     }
 
-    public function mount()
-    {
-        $this->refreshUsers();
-        // $this->lastUpdatedAt = Carbon::now()->toIso8601String(); // Store current timestamp when component is mounted
-    }
-
     public function save()
     {
         $this->validate();
 
-        $queue = Queue::create([
+        Queue::create([
             'full_name' => $this->full_name,
             'contact_number' => $this->contact_number,
             'email' => $this->email,
@@ -92,8 +105,8 @@ class Admin extends Component
             'notify_email' => (bool) $this->notify_email,
         ]);
 
+        $this->reset(['full_name', 'contact_number', 'email', 'inquiry_type', 'inquiry_details', 'notify_sms', 'notify_email', 'modal']);
         $this->refreshUsers();
-        $this->redirect('/admin');
     }
 
     public function updateStatusToApprove()
@@ -101,32 +114,31 @@ class Admin extends Component
         $queue = Queue::find($this->userIdToUpdate);
 
         if ($queue) {
-            $queue->status = 'approve'; // Update the status to 'approve'
+            $queue->status = 'approve';
             $queue->window_number = null;
             $queue->save();
-            $this->success("Queue #{$this->userIdToUpdate} status updated to 'Process'.", position: 'toast-bottom');
+            $this->success("Queue #{$this->userIdToUpdate} status updated to 'Approved'.", position: 'toast-bottom');
         } else {
             $this->error("Queue #{$this->userIdToUpdate} not found.", position: 'toast-bottom');
         }
 
         $this->resetModals();
-        $this->refreshUsers(); // Refresh the users list
+        $this->refreshUsers();
     }
 
     public function updateStatusToProcess()
     {
         $this->validate([
-            'window_number' => 'required|integer', // Ensure window_number is validated
+            'window_number' => 'required|integer',
         ]);
 
         $queue = Queue::find($this->userIdToUpdate);
 
         if ($queue) {
             $queue->status = 'process';
-            $queue->window_number = $this->window_number; // Ensure window_number is set
+            $queue->window_number = $this->window_number;
             $queue->save();
 
-            // Only send email if notify_email is true
             if ($queue->notify_email) {
                 try {
                     Mail::to($queue->email)->send(new QueueStatusUpdated($queue));
@@ -159,13 +171,12 @@ class Admin extends Component
     public function updateReason()
     {
         $this->validate([
-            'reason_details' => 'required|string', // Ensure window_number is validated
+            'reason_details' => 'required|string',
         ]);
 
         $queue = Queue::find($this->userIdToUpdate);
 
         if ($queue) {
-            // Only send email if notify_email is true
             if ($queue->notify_email) {
                 try {
                     Mail::to($queue->email)->send(new ReasonDetails($queue, $this->reason_details));
@@ -186,7 +197,7 @@ class Admin extends Component
                 }
             }
 
-            $this->success("Succesfully removed.", position: 'toast-bottom');
+            $this->success("Successfully removed.", position: 'toast-bottom');
             $queue->delete();
         } else {
             $this->error("Queue #{$this->userIdToUpdate} not found.", position: 'toast-bottom');
@@ -196,7 +207,6 @@ class Admin extends Component
         $this->refreshUsers();
     }
 
-    // Delete action
     public function delete($id): void
     {
         $queue = Queue::find($id);
@@ -211,7 +221,6 @@ class Admin extends Component
         $this->refreshUsers();
     }
 
-    // Table headers
     public function headers(): array
     {
         return [
@@ -239,23 +248,12 @@ class Admin extends Component
     public function refreshUsers()
     {
         $this->users = Queue::query()
-            ->when($this->search, function ($query) {
-                $query->where('full_name', 'like', '%' . $this->search . '%');
-            })
+            ->when($this->search, fn($query) =>
+                $query->where('full_name', 'like', '%' . $this->search . '%')
+            )
             ->orderBy($this->sortBy['column'], $this->sortBy['direction'])
             ->get();
     }
-
-    // Method to check if new queue has been added or updated
-    // public function checkForNewQueue()
-    // {
-    //     $latestQueue = Queue::latest()->first(); // Get the latest queue
-
-    //     if ($latestQueue && $latestQueue->created_at->toIso8601String() !== $this->lastUpdatedAt) {
-    //         $this->lastUpdatedAt = $latestQueue->created_at->toIso8601String(); // Update timestamp
-    //         $this->refreshUsers(); // Refresh only when a new queue is added
-    //     }
-    // }
 
     public function pollRefresh()
     {

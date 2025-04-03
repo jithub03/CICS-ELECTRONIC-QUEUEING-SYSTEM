@@ -1,24 +1,53 @@
-@php
-    $inquiry_type = [
-        ['value' => '', 'name' => 'Select Inquiry Type', 'disabled' => true],
-        ['value' => 'Academic', 'name' => 'Academic (Academic Advising, Course Crediting or Concerns)'],
-        ['value' => 'Complaints', 'name' => 'Complaints (Concerns regarding Department)'],
-        [
-            'value' => 'Document Handling',
-            'name' => 'Document Handling (Request for or Submission of Academic Documents)',
-        ],
-        ['value' => 'Financial', 'name' => 'Financial (Fee Concerns)'],
-        ['value' => 'Other', 'name' => 'Other (Please specify in the next section)'],
-    ];
-
-    $windows = [
-        ['value' => 0, 'name' => 'Select window'],
-        ['value' => 1, 'name' => 'Window 1'],
-        ['value' => 2, 'name' => 'Window 2'],
-    ];
-@endphp
 
 <div>
+    {{-- FULLSCREEN PASSCODE OVERLAY --}}
+    @if (!$authenticated)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/90 backdrop-blur-sm">
+        <div class="w-[22rem] p-6 bg-gray-800 rounded-2xl shadow-xl border border-gray-700">
+            <h2 class="text-xl font-semibold text-white mb-4 text-center">Enter Admin Passcode</h2>
+
+            <form wire:submit.prevent="verifyPasscode">
+                <x-input
+                    type="password"
+                    label="6-digit Passcode"
+                    maxlength="6"
+                    wire:model.defer="passcode_input"
+                    required
+                    class="mb-4"
+                />
+
+                <x-button
+                    label="Submit"
+                    type="submit"
+                    class="w-full bg-indigo-500 hover:bg-indigo-600 text-white"
+                    spinner
+                />
+            </form>
+        </div>
+    </div>
+@endif
+
+
+    @php
+        $inquiry_type = [
+            ['value' => '', 'name' => 'Select Inquiry Type', 'disabled' => true],
+            ['value' => 'Academic', 'name' => 'Academic (Academic Advising, Course Crediting or Concerns)'],
+            ['value' => 'Complaints', 'name' => 'Complaints (Concerns regarding Department)'],
+            [
+                'value' => 'Document Handling',
+                'name' => 'Document Handling (Request for or Submission of Academic Documents)',
+            ],
+            ['value' => 'Financial', 'name' => 'Financial (Fee Concerns)'],
+            ['value' => 'Other', 'name' => 'Other (Please specify in the next section)'],
+        ];
+
+        $windows = [
+            ['value' => 0, 'name' => 'Select window'],
+            ['value' => 1, 'name' => 'Window 1'],
+            ['value' => 2, 'name' => 'Window 2'],
+        ];
+    @endphp
+
     <!-- HEADER -->
     <x-header title="Admin Queue Management" separator>
         <x-slot:middle class="!justify-end">
@@ -29,26 +58,20 @@
             </div>
         </x-slot:middle>
         <x-slot:actions>
-            {{--
-            <x-button label="Filters" @click="$wire.drawer = true" responsive icon="o-funnel" class="btn-primary" />
-            --}}
             <x-button label="Add Queue" @click="$wire.modal = true" responsive icon="o-plus-circle" class="btn-primary" />
         </x-slot:actions>
     </x-header>
 
     <!-- TABLE -->
-    {{-- <x-card wire:poll.5s="pollRefresh"> --}}
     <x-card wire:poll.5s="pollRefresh">
         <h2 class="mb-4 text-lg font-semibold">Current Queue</h2>
         <x-table :headers="$headers" :rows="$users" :sort-by="$sortBy">
             @scope('actions', $user)
                 <div class="flex items-center">
                     @if ($user['status'] === 'pending')
-                        <!-- Show only this button when status is 'pending' -->
                         <x-button icon="o-arrow-path" class="text-blue-500 btn-ghost btn-sm"
                             @click="$wire.openEditStatusModalToProcess({{ $user['id'] }})" />
                     @elseif ($user['status'] === 'process')
-                        <!-- Show this button when status is 'process' -->
                         <x-button icon="o-check" class="text-green-500 btn-ghost btn-sm"
                             @click="$wire.openEditStatusModalApprove({{ $user['id'] }})" />
                     @else
@@ -63,13 +86,11 @@
         </x-table>
     </x-card>
 
-    <!-- MODAL -->
+    <!-- MODAL: Add Queue -->
     <x-modal wire:model="modal" title="Add new queue" subtitle="please enter the details below">
         <x-form wire:submit.prevent="save">
             <x-input label="Full Name" wire:model="full_name" required />
-
             <x-input type="number" label="Contact Number" wire:model="contact_number" required />
-
             <x-input label="Email Address" wire:model="email" required />
 
             <hr />
@@ -81,7 +102,8 @@
             <hr>
 
             <h3 class="font-bold">Inquiry Type</h3>
-            <x-select required :options="$inquiry_type" option-value="value" option-label="name" wire:model="inquiry_type" />
+            <x-select required :options="$inquiry_type" option-value="value" option-label="name"
+                wire:model="inquiry_type" />
 
             <hr>
 
@@ -94,7 +116,7 @@
         </x-form>
     </x-modal>
 
-    <!-- EDIT STATUS MODAL -->
+    <!-- MODAL: Change Status to Done -->
     <x-modal wire:model.defer="modalEditStatus" title="Change Queue Status">
         <div class="mb-5">Are you sure you want to change the status to "Done"?</div>
         <x-slot:actions>
@@ -103,20 +125,20 @@
         </x-slot:actions>
     </x-modal>
 
-    <!-- EDIT STATUS MODAL -->
+    <!-- MODAL: Change Status to Process -->
     <x-modal wire:model.defer="modalEditStatusToProcess" title="Change Queue Status">
         <div class="mb-5">
             <p class="mb-3">Are you sure you want to change the status to "Currently Serving"?</p>
             <x-select label="Select Window" :options="$windows" option-value="value" option-label="name"
-                wire:model="window_number" required /> <!-- Ensure window_number is bound -->
+                wire:model="window_number" required />
         </div>
         <x-slot:actions>
             <x-button label="Cancel" @click="$wire.modalEditStatusToProcess = false" />
             <x-button label="Confirm" class="btn-primary" wire:click="updateStatusToProcess" spinner />
-            <!-- Ensure button click event is handled -->
         </x-slot:actions>
     </x-modal>
 
+    <!-- MODAL: Reason -->
     <x-modal wire:model.defer="modalReason" title="Remove from Queue?">
         <div class="mb-5">
             <x-textarea label="Reason for queue removal" wire:model="reason_details" rows="5" required inline />
@@ -124,7 +146,9 @@
         <x-slot:actions>
             <x-button label="Cancel" @click="$wire.modalReason = false" />
             <x-button label="Confirm" class="btn-primary" wire:click="updateReason" spinner />
-            <!-- Ensure button click event is handled -->
         </x-slot:actions>
     </x-modal>
 </div>
+apps-fileview.texmex_20250313.01_p0
+admin.blade.php
+Displaying admin.blade.php.

@@ -1,4 +1,3 @@
-
 <div>
     {{-- FULLSCREEN PASSCODE OVERLAY --}}
     @if (!$authenticated)
@@ -149,6 +148,3 @@
         </x-slot:actions>
     </x-modal>
 </div>
-apps-fileview.texmex_20250313.01_p0
-admin.blade.php
-Displaying admin.blade.php.

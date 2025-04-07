@@ -21,34 +21,32 @@ class UserFeedback extends Component
     public $reaction = null; // Ensure reaction starts as null
 
     public function submitFeedback()
-    {
-        $this->validate([
-            'full_name' => $this->anonymous ? 'nullable' : 'required|string|max:255',
-            'comments' => 'nullable|string',
-            'inquiry_type' => 'string',
-            'reaction' => 'required|in:angry,sad,neutral,happy,very_happy',
-        ]);
+{
+    $this->validate([
+        'full_name' => $this->anonymous ? 'nullable' : 'required|string|max:255',
+        'comments' => 'nullable|string',
+        'inquiry_type' => 'string',
+        'reaction' => 'required|in:angry,sad,neutral,happy,very_happy',
+    ]);
 
-        Feedback::create([
-            'full_name' => $this->anonymous ? 'Anonymous' : $this->full_name,
-            'comments' => $this->comments,
-            'inquiry_type' => $this->inquiry_type,
-            'anonymous' => $this->anonymous,
-            'reaction' => $this->reaction,
-        ]);
+    Feedback::create([
+        'full_name' => $this->anonymous ? 'Anonymous' : $this->full_name,
+        'comments' => $this->comments,
+        'inquiry_type' => $this->inquiry_type,
+        'anonymous' => $this->anonymous,
+        'reaction' => $this->reaction,
+    ]);
 
-        // Show success toast
-        $this->success("Thank you for your feedback! Redirecting in 5 seconds...", position: 'toast-bottom');
+    // Show success toast
+    $this->success("Thank you for your feedback!", position: 'toast-bottom');
 
-        // Dispatch event to trigger redirection in JavaScript
-        $this->dispatch('redirectAfterDelay');
+    // Reset input fields
+    $this->reset(['full_name', 'comments', 'anonymous', 'reaction']);
 
-        // Reset input fields
-        $this->reset(['full_name', 'comments', 'anonymous', 'reaction']);
+    // Forget the session queue_id to prevent redirection loop
+    session()->forget('queue_id');
+}
 
-        // Forget the session queue_id to prevent redirection loop
-        session()->forget('queue_id');
-    }
 
     public function render()
     {

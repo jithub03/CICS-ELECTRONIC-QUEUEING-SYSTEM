@@ -42,7 +42,7 @@
                     class="-mx-2 !-my-2 rounded">
                     <x-slot:actions>
                         <x-button icon="o-power" class="btn-circle btn-ghost btn-xs" tooltip-left="logoff"
-                            no-wire-navigate link="/logout" />
+                            no-wire-navigate link="/window_number" />
                     </x-slot:actions>
                 </x-list-item>
 
@@ -53,7 +53,7 @@
                 <x-menu-item title="Feedback" icon="o-sparkles" link="/feedback" />
                 <x-menu-item title="Reports" icon="o-chart-bar" link="/reports" />
                 <x-menu-item title="Export Reports" icon="o-document-arrow-down" link="/export-reports" />
-                <x-menu-item title="Logout" icon="m-arrow-right-on-rectangle" link="/" />
+                <x-menu-item title="window_number" icon="m-arrow-right-on-rectangle" link="/" />
             </x-menu>
         </x-slot:sidebar>
 

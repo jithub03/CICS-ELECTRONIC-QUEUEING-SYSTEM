@@ -115,7 +115,6 @@ class Admin extends Component
 
         if ($queue) {
             $queue->status = 'approve';
-            $queue->window_number = null;
             $queue->save();
             $this->success("Queue #{$this->userIdToUpdate} status updated to 'Approved'.", position: 'toast-bottom');
         } else {
@@ -197,8 +196,10 @@ class Admin extends Component
                 }
             }
 
-            $this->success("Successfully removed.", position: 'toast-bottom');
-            $queue->delete();
+            $this->success("Successfully rejected.", position: 'toast-bottom');
+            $queue->status = 'rejected'; 
+            $queue->save();              
+
         } else {
             $this->error("Queue #{$this->userIdToUpdate} not found.", position: 'toast-bottom');
         }
@@ -210,16 +211,19 @@ class Admin extends Component
     public function delete($id): void
     {
         $queue = Queue::find($id);
-
+    
         if ($queue) {
-            $queue->delete();
-            $this->success("Queue #$id deleted successfully.", position: 'toast-bottom');
+            $queue->status = 'archived';
+            $queue->save();
+    
+            $this->success("Queue #$id archived successfully.", position: 'toast-bottom');
         } else {
             $this->error("Queue #$id not found.", position: 'toast-bottom');
         }
-
-        $this->refreshUsers();
+    
+        $this->refreshUsers(); // reload without the archived item
     }
+    
 
     public function headers(): array
     {
@@ -246,14 +250,16 @@ class Admin extends Component
     }
 
     public function refreshUsers()
-    {
-        $this->users = Queue::query()
-            ->when($this->search, fn($query) =>
-                $query->where('full_name', 'like', '%' . $this->search . '%')
-            )
-            ->orderBy($this->sortBy['column'], $this->sortBy['direction'])
-            ->get();
-    }
+{
+    $this->users = Queue::query()
+        ->whereNotIn('status', ['archived', 'rejected'])
+        ->when($this->search, fn($query) =>
+            $query->where('full_name', 'like', '%' . $this->search . '%')
+        )
+        ->orderBy($this->sortBy['column'], $this->sortBy['direction'])
+        ->get();
+}
+
 
     public function pollRefresh()
     {

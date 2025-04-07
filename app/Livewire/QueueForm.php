@@ -40,7 +40,7 @@ class QueueForm extends Component
     public function fetchCurrentServingPerWindow()
     {
         // Fetch current serving queue for each window (1, 2, 3)
-        $this->windowQueues = Queue::whereIn('status', ['process', 'approve'])
+        $this->windowQueues = Queue::whereIn('status', ['process'])
             ->whereNotNull('window_number')
             ->orderBy('window_number')
             ->get()
@@ -69,11 +69,6 @@ class QueueForm extends Component
     {
         $this->fetchCurrentServing();
         $this->fetchCurrentServingPerWindow();
-
-        // Only redirect if the queue exists AND its status is 'approve'
-        if ($this->currentServing && $this->currentServing->status === 'approve') {
-            return redirect()->to("/user-feedback");
-        }
     }
 
     public function save()

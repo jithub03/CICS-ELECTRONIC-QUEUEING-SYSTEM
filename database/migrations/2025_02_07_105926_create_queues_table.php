@@ -20,7 +20,7 @@ return new class extends Migration
             $table->text('inquiry_details')->nullable();
             $table->boolean('notify_sms')->default(false);
             $table->boolean('notify_email')->default(false);
-            $table->enum('status', ['pending', 'process', 'approve', 'rejected'])->default('pending');
+            $table->enum('status', ['pending', 'process', 'approve', 'rejected', 'archived'])->default('pending');
             $table->unsignedTinyInteger('window_number')->nullable();
             $table->timestamps();
         });
